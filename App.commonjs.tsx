@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Text, StyleSheet, SafeAreaView, View, Pressable, ScrollView } from "react-native";
+import { Text, StyleSheet, SafeAreaView, View, Pressable, ScrollView, TurboModuleRegistry, NativeEventEmitter, NativeModules } from "react-native";
 
 // const { GreeterClient } = require('./protos/commonjs/greet_grpc_web_pb');
 // const { HelloRequest, HelloReply } = require('./protos/commonjs/greet_pb');
@@ -7,11 +7,30 @@ import { Text, StyleSheet, SafeAreaView, View, Pressable, ScrollView } from "rea
 const { GreeterClient } = require('./protos/commonjswebText/greet_grpc_web_pb');
 const { HelloRequest, HelloReply } = require('./protos/commonjswebText/greet_pb');
 
+const GrpcModule = TurboModuleRegistry.get('GrpcModule');
+const GrpcModuleEmitter = new NativeEventEmitter(GrpcModule as any);
+
 function IgniteApp() {
-  const [state, setState] = React.useState("Test");
+  const [state, setState] = React.useState("Initial state");
+  const [nativeEventStream, setNativeEventStream] = React.useState("");
   const [userIndex, setUserIndex] = React.useState(-1);
   const [helloMessages, setHelloMessages] = React.useState<string[]>([]);
   const clientRef = useRef<typeof GreeterClient | null>(null);
+
+  useEffect(() => {
+    const GrpcEventStream = GrpcModuleEmitter.addListener('GrpcEventStream', (event) => {
+      console.log('GrpcEventStream', event);
+      setNativeEventStream(event);
+    });
+
+    return () => {
+      GrpcEventStream.remove();
+    }
+  }, []);
+
+  useEffect(() => {
+    NativeModules.GrpcModule.ConnectToStream();
+  }, []);
 
   // Initialize the gRPC client once
   if (!clientRef.current) {
@@ -123,13 +142,17 @@ function IgniteApp() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.body}>
-        <Text style={{color: 'black'}}>Commonjs</Text>
-        <Text style={{color: 'black'}}>Stream kept open after response</Text>
-        <Text style={{color: 'black'}}>{state}</Text>
+        <Text style={{color: 'black', fontWeight: 'bold'}}>Commonjs</Text>
+        <Text style={{color: 'black', marginBottom: 10}}>Stream kept open after response</Text>
+        <Text style={{color: 'black', fontStyle: 'italic', marginBottom: 20}}>{state}</Text>
+        <Text style={{color: 'black', fontWeight: 'bold'}}>Native Implementation</Text>
+        <Text style={{color: 'black', marginBottom: 10}}>Stream kept open after response</Text>
+        <Text style={{color: 'black', fontStyle: 'italic'}}>{nativeEventStream}</Text>
         <Pressable style={{ backgroundColor: '#007acc', width: 150, height: 50, alignItems: 'center', justifyContent: 'center', marginTop: 20, marginBottom: 20 }} onPress={() => updateUserIndex()}>
           <Text style={{ color: 'white' }}>Say Hello To User</Text>
         </Pressable>
-        <Text style={{color: 'black'}}>Stream closes after response</Text>
+        <Text style={{color: 'black', fontWeight: 'bold'}}>Commonjs</Text>
+        <Text style={{color: 'black', marginBottom: 20}}>Stream closes after response</Text>
         <ScrollView>
           {helloMessages.map((message, index) => (
             <Text style={{color: 'black'}} key={index}>{message}</Text>
