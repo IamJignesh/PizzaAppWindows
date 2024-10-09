@@ -4,33 +4,11 @@ import { Text, StyleSheet, SafeAreaView, View, Pressable, ScrollView, TurboModul
 import { HelloReply, HelloRequest } from './protos/tswebText/greet_pb';
 import { GreeterClient } from './protos/tswebText/GreetServiceClientPb';
 
-// import { HelloReply, HelloRequest } from './protos/ts/greet_pb';
-// import { GreeterClient } from './protos/ts/GreetServiceClientPb';
-
-const GrpcModule = TurboModuleRegistry.get('GrpcModule');
-const GrpcModuleEmitter = new NativeEventEmitter(GrpcModule as any);
-
 function IgniteApp() {
   const [state, setState] = React.useState("Initial state");
-  const [nativeEventStream, setNativeEventStream] = React.useState("");
   const [userIndex, setUserIndex] = React.useState(-1);
   const [helloMessages, setHelloMessages] = React.useState<string[]>([]);
   const clientRef = useRef<GreeterClient | null>(null);
-
-  useEffect(() => {
-    const GrpcEventStream = GrpcModuleEmitter.addListener('GrpcEventStream', (event) => {
-      console.log('GrpcEventStream', event);
-      setNativeEventStream(event);
-    });
-
-    return () => {
-      GrpcEventStream.remove();
-    }
-  }, []);
-
-  useEffect(() => {
-    NativeModules.GrpcModule.ConnectToStream();
-  }, []);
 
   // Initialize the gRPC client once
   if (!clientRef.current) {
@@ -145,9 +123,6 @@ function IgniteApp() {
         <Text style={{color: 'black', fontWeight: 'bold'}}>TypeScript</Text>
         <Text style={{color: 'black', marginBottom: 10}}>Stream kept open after response</Text>
         <Text style={{color: 'black', fontStyle: 'italic', marginBottom: 20}}>{state}</Text>
-        <Text style={{color: 'black', fontWeight: 'bold'}}>Native Implementation</Text>
-        <Text style={{color: 'black', marginBottom: 10}}>Stream kept open after response</Text>
-        <Text style={{color: 'black', fontStyle: 'italic'}}>{nativeEventStream}</Text>
         <Pressable style={{ backgroundColor: '#007acc', width: 150, height: 50, alignItems: 'center', justifyContent: 'center', marginTop: 20, marginBottom: 20 }} onPress={() => updateUserIndex()}>
           <Text style={{ color: 'white' }}>Say Hello To User</Text>
         </Pressable>
